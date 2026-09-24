@@ -1,0 +1,20 @@
+{
+  "id": "./",
+  "name": "Simulador CDB",
+  "short_name": "Simulador CDB",
+  "description": "Simule investimentos em CDB e compare com a poupança. Funciona offline.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFEBD0",
+  "theme_color": "#FF6A00",
+  "categories": ["finance", "utilities"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
