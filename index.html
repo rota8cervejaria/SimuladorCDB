@@ -36,6 +36,8 @@
   input { width:100%; padding:12px 14px; background:var(--field); color:var(--ink); border:1.5px solid var(--line); border-radius:10px; font:inherit; font-size:16px; font-variant-numeric:tabular-nums; }
   input { padding:12px 12px; }
   input:focus { outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(255,106,0,.25); }
+  input[readonly] { background:var(--line); color:var(--muted); cursor:not-allowed; }
+  input[readonly]:focus { box-shadow:none; border-color:var(--line); }
   input[aria-invalid="true"] { border-color:var(--loss); }
   :focus-visible { outline:3px solid var(--gold); outline-offset:2px; }
   .hint { font-size:13px; color:var(--muted); margin-top:4px; }
@@ -89,18 +91,18 @@
     <form class="panel" id="form" novalidate autocomplete="off">
       <div class="grid2">
         <div class="field"><label for="valor">Valor investido (R$)</label>
-          <input id="valor" inputmode="numeric" value="10.000,00" aria-describedby="e-valor"><div class="err" id="e-valor"></div></div>
+          <input id="valor" inputmode="numeric" value="" placeholder="0,00" aria-describedby="e-valor"><div class="err" id="e-valor"></div></div>
         <div class="field"><label for="prazo">Prazo</label>
-          <input id="prazo" inputmode="numeric" value="365" placeholder="Em dias" aria-describedby="e-prazo"><div class="err" id="e-prazo"></div></div>
+          <input id="prazo" inputmode="numeric" value="" placeholder="Em dias" aria-describedby="e-prazo"><div class="err" id="e-prazo"></div></div>
       </div>
       <div class="chips" id="chips" style="margin:-6px 0 16px"></div>
       <div class="grid2">
         <div class="field"><label for="cdi">CDI anual (%)</label>
-          <input id="cdi" inputmode="decimal" placeholder="Ex.: 14,90" aria-describedby="e-cdi"><div class="err" id="e-cdi"></div></div>
+          <input id="cdi" inputmode="decimal" placeholder="Buscando…" readonly aria-readonly="true" aria-describedby="e-cdi"><div class="err" id="e-cdi"></div></div>
         <div class="field"><label for="taxa">% do CDI</label>
-          <input id="taxa" inputmode="decimal" value="100" aria-describedby="e-taxa"><div class="err" id="e-taxa"></div></div>
+          <input id="taxa" inputmode="decimal" value="" placeholder="Ex.: 100" aria-describedby="e-taxa"><div class="err" id="e-taxa"></div></div>
       </div>
-      <p class="hint" style="margin:-6px 0 16px" id="hint-cdi">CDI: preenchido automaticamente com a taxa anual mais recente do Banco Central. Você pode alterar o valor manualmente.</p>
+      <p class="hint" style="margin:-6px 0 16px" id="hint-cdi">CDI: atualizado automaticamente com a taxa oficial do Banco Central. Campo bloqueado para edição.</p>
       <button type="button" class="clear" id="limpar">Limpar campos</button>
     </form>
     <main class="stack" id="resultado" aria-live="polite"></main>
@@ -155,7 +157,7 @@
   });
 
   $('limpar').addEventListener('click', () => {
-    ['valor','prazo','cdi'].forEach(i => $(i).value = ''); $('taxa').value = '100'; atualizar(); $('valor').focus();
+    ['valor','prazo','taxa'].forEach(i => $(i).value = ''); atualizar(); $('valor').focus();
   });
   $('form').addEventListener('input', atualizar);
   $('form').addEventListener('submit', e => e.preventDefault());
@@ -166,7 +168,7 @@
     const cdi = decimal($('cdi').value), taxa = decimal($('taxa').value);
     if (!(valor > 0)) erros.valor = 'Informe um valor maior que zero.';
     if (!(prazo >= 1) || prazo > 3650) erros.prazo = 'Informe um prazo entre 1 e 3.650 dias.';
-    if (!(cdi > 0) || cdi > 100) erros.cdi = 'Informe o CDI anual, por exemplo 14,90.';
+    if (!(cdi > 0) || cdi > 100) erros.cdi = 'Buscando a taxa oficial no Banco Central…';
     if (!(taxa > 0) || taxa > 300) erros.taxa = 'Informe um percentual entre 1 e 300.';
     return { valor, prazo, cdi: cdi / 100, taxa: taxa / 100, erros };
   }
@@ -274,19 +276,17 @@
   const CDI_CACHE_KEY = 'cdiAutomaticoBC';
 
   function aplicarCDIAutomatico(valor, fonte) {
-    if ($('cdi').value) return; // não sobrescreve o que o usuário já digitou
     const num = parseFloat(String(valor).replace(',', '.'));
     $('cdi').value = Number.isFinite(num)
       ? num.toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 })
       : valor;
     $('hint-cdi') && ($('hint-cdi').textContent = fonte === 'cache'
-      ? 'CDI: última taxa do Banco Central disponível (offline). Você pode alterar o valor manualmente.'
-      : 'CDI: preenchido automaticamente com a taxa anual mais recente do Banco Central. Você pode alterar o valor manualmente.');
+      ? 'CDI: última taxa do Banco Central disponível (offline). Campo bloqueado para edição.'
+      : 'CDI: atualizado automaticamente com a taxa oficial do Banco Central. Campo bloqueado para edição.');
     atualizar();
   }
 
   async function carregarCDIAutomatico() {
-    if ($('cdi').value) return;
     try {
       const resp = await fetch(CDI_URL);
       if (!resp.ok) throw new Error('resposta HTTP ' + resp.status);
@@ -302,7 +302,7 @@
         if (cache) { aplicarCDIAutomatico(cache, 'cache'); usouCache = true; }
       } catch (e2) { /* localStorage indisponível */ }
       if (!usouCache && !$('cdi').value && $('hint-cdi')) {
-        $('hint-cdi').textContent = 'CDI: não foi possível buscar a taxa automaticamente (sem internet ou bloqueio do navegador). Informe manualmente.';
+        $('hint-cdi').textContent = 'CDI: não foi possível buscar a taxa no Banco Central (sem internet ou serviço indisponível). Tentando novamente ao reabrir o app.';
       }
     }
   }
